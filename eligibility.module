@@ -4,3 +4,151 @@
  * @file
  * Provides an eligibility api for Drupal.
  */
+
+
+/**
+ * Eligibility is early.
+ */
+define('ELIGIBILITY_IS_EARLY', 1);
+
+/**
+ * Eligibility is late.
+ */
+define('ELIGIBILITY_IS_LATE', 2);
+
+/**
+ * Eligibility in range.
+ */
+define('ELIGIBILITY_IS_ELIGIBLE', 3);
+
+/**
+ * Eligibility not in range.
+ */
+define('ELIGIBILITY_IS_NOT_ELIGIBLE', 4);
+
+/**
+ * Debug date format.
+ */
+define('ELIGIBILITY_DEBUG_DATE_FORMAT', 'd M Y H:i:s');
+
+/**
+ * Load a restriction.
+ *
+ * @param $rid
+ *   A Restriction ID.
+ * @return
+ *   A Restriction Object or FALSE
+ */
+function eligibility_restriction_load($rid) {
+  $restrictions = &drupal_static(__FUNCTION__, array());
+
+  if ( !isset($restrictions[$rid]) ) {
+    $restriction = db_select('eligibility_restrictions', 'r')
+      ->fields('r')
+      ->condition('r.rid', $rid)
+      ->execute()
+      ->fetchObject();
+
+    switch ( $restriction->type ) {
+      case 'series':
+        $restriction->data = db_select('eligibility_restrictions_series', 'rs')
+          ->fields('rs')
+          ->condition('rs.rid', $rid)
+          ->orderBy('timestamp')
+          ->execute()
+          ->fetchAll();
+
+        break;
+      case 'interval':
+        $restriction->data = db_select('eligibility_restrictions_interval', 'ri')
+          ->fields('ri')
+          ->condition('ri.rid', $rid)
+          ->execute()
+          ->fetchObject();
+    }
+
+    $restrictions[$rid] = $restriction;
+  }
+
+  return $restrictions[$rid];
+}
+
+/**
+ * Load multiple restrictions.
+ *
+ * @param $param
+ *   An array of conditions to match against the database query.
+ * @return
+ *   An array of Restriction Objects.
+ */
+function eligibility_restriction_load_multiple($param = array()) {
+  $query = db_select('eligibility_restrictions', 'r')
+    ->fields('r', array('rid'));
+
+  foreach ( $param as $field => $value ) {
+    $query->condition($field, $value);
+  }
+
+  $restrictions = array();
+  $result = $query->execute();
+  foreach ( $result as $restriction ) {
+    $restrictions[] = userpoints_collect_restriction_load($restriction->rid);
+  }
+
+  return $restrictions;
+}
+
+/**
+ * Save a restriction.
+ *
+ * @param $restriction
+ *   A Restriction Object.
+ */
+function eligibility_restriction_save(&$restriction) {
+  $restriction->is_new = empty($restriction->rid);
+
+  if ( $restriction->is_new ) {
+    $status = drupal_write_record('eligibility_restrictions', $restriction);
+  }
+  else {
+    $status = drupal_write_record('eligibility_restrictions', $restriction, 'rid');
+  }
+}
+
+/**
+ * Clear all restrictions.
+ */
+function eligibility_clear_all() {
+  db_truncate('eligibility_restrictions')->execute();
+  db_truncate('eligibility_restrictions_interval')->execute();
+  db_truncate('eligibility_restrictions_series')->execute();
+  drupal_set_message(t('Cleared all eligibility restrictions'));
+}
+
+/**
+ * Returns the eligibility for an account based on any restrictions.
+ *
+ * @param $account
+ *   (optional) A User Object.
+ * @param $timestamp
+ *   (optional) A timestamp to check against, defaults to time().
+ * @param $tid
+ *   (optional) A Category ID.
+ * @return
+ *   An Eligibility Object.
+ */
+function eligibility_get($account = NULL, $timestamp = NULL, $tid = NULL) {
+  if ( is_null($account) ) {
+    $account = $GLOBALS['user'];
+  }
+
+  if ( is_null($timestamp) ) {
+    $timestamp = time();
+  }
+
+  $status = ELIGIBILITY_IS_ELIGIBLE;
+  $restrictions = eligibility_restriction_load_multiple(array('status' => 1));
+  if ( count($restrictions) > 0 ) {
+
+  }
+}
