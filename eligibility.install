@@ -1,0 +1,128 @@
+<?php
+
+/**
+ * @file
+ * Provides install / uninstall functionality for eligibility module.
+ */
+
+
+/**
+ * Implements hook_schema().
+ */
+function eligibility_schema() {
+  $schema['eligibility_restrictions'] = array(
+    'description' => 'Holds restriction information for eligibility',
+    'fields' => array(
+      'rid' => array(
+        'description' => 'Restriction ID',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
+      'type' => array(
+        'description' => 'The type of restriction',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'tid' => array(
+        'description' => 'The Category ID',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'status' => array(
+        'description' => 'Status',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' =>  array('rid'),
+    'indexes' => array(
+      'tid' => array('tid'),
+    ),
+  );
+
+  $schema['eligibility_restrictions_interval'] = array(
+    'description' => 'Holds restriction interval information for eligibility',
+    'fields' => array(
+      'rid' => array(
+        'description' => 'Restriction ID',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'start' => array(
+        'description' => 'Start Timestamp',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'end' => array(
+        'description' => 'End Timestamp',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'length' => array(
+        'description' => 'Length',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'rid' => array('rid'),
+    ),
+  );
+
+  $schema['eligibility_restrictions_series'] = array(
+    'description' => 'Holds restriction series information for eligibility',
+    'fields' => array(
+      'sid' => array(
+        'description' => 'Timestamp ID',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
+      'rid' => array(
+        'description' => 'Restriction ID',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'timestamp' => array(
+        'description' => 'Timestamp',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'status' => array(
+        'description' => 'Status',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+    ),
+    'primary key' =>  array('sid'),
+    'indexes' => array(
+      'rid' => array('rid'),
+    ),
+  );
+
+  return $schema;
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function eligibility_uninstall() {
+  db_delete('variable')
+    ->condition('name', 'eligibility_%', 'LIKE')
+    ->execute();
+}
