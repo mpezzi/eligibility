@@ -98,15 +98,13 @@ function eligibility_restriction_load_multiple($param = array()) {
     ->fields('r', array('rid'));
 
   foreach ( $param as $field => $value ) {
-    if ( !is_null($value) ) {
-      $query->condition($field, $value);
-    }
+    $query->condition($field, $value);
   }
 
   $restrictions = array();
   $result = $query->execute();
   foreach ( $result as $restriction ) {
-    $restrictions[] = userpoints_collect_restriction_load($restriction->rid);
+    $restrictions[] = eligibility_restriction_load($restriction->rid);
   }
 
   return $restrictions;
@@ -244,26 +242,30 @@ function eligibility_clear_all() {
  * @return
  *   An Eligibility Object.
  */
-function eligibility_get($account = NULL, $tid = NULL, $timestamp = NULL, $last_timestamp = NULL) {
-  if ( is_null($account) ) {
-    $account = $GLOBALS['user'];
-  }
+function eligibility_get($params = array()) {
+  $params += array(
+    'uid' => $GLOBALS['user']->uid,
+    'tid' => 0,
+    'timestamp' => time(),
+    'last_timestamp' => NULL,
+  );
 
-  if ( is_null($timestamp) ) {
-    $timestamp = time();
-  }
-
-  if ( is_null($last_timestamp) ) {
-    //$last_timestamp = eligibility_last_timestamp($account, $tid);
+  if ( is_null($params['last_timestamp']) ) {
+    if ( $event = eligibility_event_load_last($params['uid'], $params['tid']) ) {
+      $params['last_timestamp'] = $event->timestamp;
+    }
+    else {
+      $params['last_timestamp'] = FALSE;
+    }
   }
 
   $status = ELIGIBILITY_IS_ELIGIBLE;
-  $restrictions = eligibility_restriction_load_multiple(array('status' => 1, 'tid' => $tid));
+  $restrictions = eligibility_restriction_load_multiple(array('status' => 1, 'tid' => $params['tid']));
   if ( count($restrictions) > 0 ) {
     foreach ( $restrictions as $restriction ) {
       $function = 'eligibility_restriction_' . $restriction->type;
       if ( $status == ELIGIBILITY_IS_ELIGIBLE && function_exists($function) ) {
-        $eligibility = $function($restriction, $timestamp, $last_timestamp);
+        $eligibility = $function($restriction, $params['timestamp'], $params['last_timestamp']);
         $status = $eligibility->status;
       }
     }
@@ -271,8 +273,8 @@ function eligibility_get($account = NULL, $tid = NULL, $timestamp = NULL, $last_
   else {
     $eligibility = (object) array(
       'status' => ELIGIBILITY_IS_ELIGIBLE,
-      'timestamp' => $timestamp,
-      'last_timestamp' => $last_timestamp,
+      'timestamp' => $params['timestamp'],
+      'last_timestamp' => $params['last_timestamp'],
       'start' => 0,
       'end' => 0,
     );
@@ -296,6 +298,51 @@ function eligibility_get($account = NULL, $tid = NULL, $timestamp = NULL, $last_
   eligibility_debug($eligibility);
 
   return $eligibility;
+}
+
+/**
+ * Save an eligibility event.
+ *
+ * @param $uid
+ *   A User ID.
+ * @param $tid
+ *   A Category ID.
+ * @param $timestamp
+ *   (optional) A timestamp, defaults to time().
+ * @return
+ *   An Eligibility Event Object.
+ */
+function eligibility_event_save($uid, $tid, $timestamp = NULL) {
+  $event = (object) array(
+    'uid' => $uid,
+    'tid' => $tid,
+    'timestamp' => is_null($timestamp) ? time() : $timestamp,
+  );
+
+  drupal_write_record('eligibility_events', $event);
+
+  return $event;
+}
+
+/**
+ * Returns that last timestamp.
+ *
+ * @param $uid
+ *   A User ID.
+ * @param $tid
+ *   A Category ID.
+ * @return
+ *   An Eligibility Event Object.
+ */
+function eligibility_event_load_last($uid, $tid) {
+  return db_select('eligibility_events', 'e')
+    ->fields('e')
+    ->condition('uid', $uid)
+    ->condition('tid', $tid)
+    ->orderBy('timestamp', 'DESC')
+    ->range(0, 1)
+    ->execute()
+    ->fetchObject();
 }
 
 /**
@@ -353,8 +400,8 @@ function eligibility_restriction_interval($restriction, $timestamp, $last_timest
           'last_timestamp' => $last_timestamp,
           'start' => $start,
           'end' => $end,
-          'period_start' => $period_start,
-          'period_end' => $period_end,
+          'period_start' => (int) $period_start,
+          'period_end' => (int) $period_end,
         );
       }
     }
@@ -366,8 +413,8 @@ function eligibility_restriction_interval($restriction, $timestamp, $last_timest
     'last_timestamp' => $last_timestamp,
     'start' => $start,
     'end' => $end,
-    'period_start' => $period_start,
-    'period_end' => $period_end,
+    'period_start' => (int) $period_start,
+    'period_end' => (int) $period_end,
   );
 }
 
@@ -449,4 +496,19 @@ function eligibility_debug($eligibility) {
   if ( user_access('debug eligibility') && eligibility_config('debug') && module_exists('devel') ) {
     dpm($eligibility);
   }
+}
+
+/**
+ * Returns Eligibility configuration settings.
+ */
+function eligibility_config($variable = NULL) {
+  $config = array(
+    'debug' => variable_get('eligibility_debug', FALSE),
+  );
+
+  if ( !is_null($variable) ) {
+    return isset($config[$variable]) ? $config[$variable] : FALSE;
+  }
+
+  return $config;
 }
