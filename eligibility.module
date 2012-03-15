@@ -86,7 +86,9 @@ function eligibility_restriction_load_multiple($param = array()) {
     ->fields('r', array('rid'));
 
   foreach ( $param as $field => $value ) {
-    $query->condition($field, $value);
+    if ( !is_null($value) ) {
+      $query->condition($field, $value);
+    }
   }
 
   $restrictions = array();
@@ -130,14 +132,16 @@ function eligibility_clear_all() {
  *
  * @param $account
  *   (optional) A User Object.
- * @param $timestamp
- *   (optional) A timestamp to check against, defaults to time().
  * @param $tid
  *   (optional) A Category ID.
+ * @param $timestamp
+ *   (optional) A timestamp to check against, defaults to time().
+ * @param $last_timestamp
+ *   (optional) The last timestamp used during eligibility.
  * @return
  *   An Eligibility Object.
  */
-function eligibility_get($account = NULL, $timestamp = NULL, $tid = NULL) {
+function eligibility_get($account = NULL, $tid = NULL, $timestamp = NULL, $last_timestamp = NULL) {
   if ( is_null($account) ) {
     $account = $GLOBALS['user'];
   }
@@ -146,9 +150,120 @@ function eligibility_get($account = NULL, $timestamp = NULL, $tid = NULL) {
     $timestamp = time();
   }
 
-  $status = ELIGIBILITY_IS_ELIGIBLE;
-  $restrictions = eligibility_restriction_load_multiple(array('status' => 1));
-  if ( count($restrictions) > 0 ) {
-
+  if ( is_null($last_timestamp) ) {
+    $last_timestamp = eligibility_last_timestamp($account, $tid);
   }
+
+  $status = ELIGIBILITY_IS_ELIGIBLE;
+  $restrictions = eligibility_restriction_load_multiple(array('status' => 1, 'tid' => $tid));
+  if ( count($restrictions) > 0 ) {
+    foreach ( $restrictions as $restriction ) {
+      $function = 'eligibility_restriction_' . $restriction->type;
+      if ( $status == ELIGIBILITY_IS_ELIGIBLE && function_exists($function) ) {
+        $eligibility = $function($restriction, $timestamp, $last_timestamp);
+        $status = $eligibility->status;
+      }
+    }
+  }
+  else {
+    $eligibility = (object) array(
+      'status' => ELIGIBILITY_IS_ELIGIBLE,
+      'timestamp' => $timestamp,
+      'last_timestamp' => $last_timestamp,
+      'start' => 0,
+      'end' => 0,
+    );
+  }
+
+  // Calculate the time left until eligibility.
+  if ( $eligibility->status == ELIGIBILITY_IS_NOT_ELIGIBLE && isset($eligibility->period_end) ) {
+    $eligibility->next = $eligibility->period_end - $eligibility->timestamp;
+  }
+  elseif ( $eligibility->status == ELIGIBILITY_IS_EARLY ) {
+    $eligibility->next = $eligibility->start - $eligibility->timestamp;
+  }
+  elseif ( $eligibility->status == ELIGIBILITY_IS_LATE ) {
+    $eligibility->next = -1;
+  }
+  else {
+    $eligibility->next = 0;
+  }
+
+  // Debug the eligibility object.
+  eligibility_debug($eligibility);
+
+  return $eligibility;
+}
+
+/**
+ * Returns eligibility information for interval based time checking.
+ *
+ * @param $restriction
+ *   A Restriction Object.
+ * @param $timestamp
+ *   A timestamp to check against.
+ * @param $last_timestamp
+ *   The last timestamp used during eligibility.
+ */
+function eligibility_restriction_interval($restriction, $timestamp, $last_timestamp) {
+  $start = $restriction->data->start;
+  $end = $restriction->data->end;
+  $length = $restriction->data->length;
+
+  if ( $timestamp < $start ) {
+    return (object) array(
+      'status' => ELIGIBILITY_IS_EARLY,
+      'timestamp' => $timestamp,
+      'start' => $start,
+      'end' => $end,
+    );
+  }
+  elseif ( $end != 0 && $timestamp >= $end ) {
+    return (object) array(
+      'status' => ELIGIBILITY_IS_LATE,
+      'timestamp' => $timestamp,
+      'start' => $start,
+      'end' => $end,
+    );
+  }
+  else {
+    $num_intervals = ( $timestamp - $start ) / $length;
+
+    // Intervals divides into timestamp evenly.
+    if ( ( $timestamp - $start ) % $length == 0 ) {
+      $period_start = $start + $num_intervals * $length;
+      $period_end = $start + ( $num_intervals + 1 ) * $length;
+    }
+    // Intervals isn't a whole number calculate max and min values.
+    else {
+      $min_num_intervals = floor($num_intervals);
+      $max_num_intervals = ceil($num_intervals);
+      $period_start = $start + $min_num_intervals * $length;
+      $period_end = $start + $max_num_intervals * $length;
+    }
+
+    if ( $timestamp >= $min && $timestamp < $max ) {
+      if ( !$last_timestamp || $last_timestamp < $period_start ) {
+        return (object) array(
+          'status' => ELIGIBILITY_IS_ELIGIBLE,
+          'timestamp' => $timestamp,
+          'last_timestamp' => $last_timestamp,
+          'start' => $start,
+          'end' => $end,
+          'period_start' => $period_start,
+          'period_end' => $period_end,
+        );
+      }
+    }
+  }
+
+  return (object) array(
+    'status' => ELIGIBILITY_IS_NOT_ELIGIBLE,
+    'timestamp' => $timestamp,
+    'last_timestamp' => $last_timestamp,
+    'start' => $start,
+    'end' => $end,
+    'period_start' => $period_start,
+    'period_end' => $period_end,
+  );
 }
