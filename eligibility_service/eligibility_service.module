@@ -1,0 +1,51 @@
+<?php
+
+/**
+ * @file
+ * Provides eligibility functionality via a service.
+ */
+
+
+/**
+ * Implements hook_services_resources().
+ */
+function eligibility_service_services_resources() {
+  return array(
+    'actions' => array(
+      'get' => array(
+        'help' => 'Get the eligibility of an account.',
+        'file' => array('file' => 'inc', 'module' => 'eligibility_service', 'name' => 'resources/eligibility_resource'),
+        'callback' => '_eligibility_resource_get',
+        'access callback' => '_eligibility_resource_access',
+        'access arguments' => array('get'),
+        'access arguments append' => TRUE,
+        'args' => array(
+          array(
+            'name' => 'tid',
+            'description' => 'The Category ID.',
+            'type' => 'int',
+            'optional' => TRUE,
+            'source' => array('param' => 'tid'),
+          ),
+        ),
+      ),
+      'event' => array(
+        'help' => 'Save an eligibility event.',
+        'file' => array('file' => 'inc', 'module' => 'eligibility_service', 'name' => 'resources/eligibility_resource'),
+        'callback' => '_eligibility_resource_event',
+        'access callback' => '_eligibility_resource_access',
+        'access arguments' => array('event'),
+        'access arguments append' => TRUE,
+        'args' => array(
+          array(
+            'name' => 'tid',
+            'description' => 'The Category ID.',
+            'type' => 'int',
+            'optional' => TRUE,
+            'source' => array('param' => 'tid'),
+          ),
+        ),
+      ),
+    ),
+  );
+}

@@ -1,0 +1,9 @@
+name = Eligibility Service
+description = Provides eligibility functionality via a service.
+package = Eligibility
+core = 7.x
+
+files[] = eligibility_service.test
+
+dependencies[] = eligibility
+dependencies[] = services
