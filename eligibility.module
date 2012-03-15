@@ -133,7 +133,7 @@ function eligibility_restriction_save(&$restriction) {
  * @param $params
  *   An array of parameters.
  */
-function eligibility_create_restriction_interval($params = array()) {
+function eligibility_restriction_create_interval($params = array()) {
   $params += array(
     'start' => time(),
     'end' => 0,
@@ -168,7 +168,7 @@ function eligibility_create_restriction_interval($params = array()) {
  * @param $params
  *   An array of parameters.
  */
-function eligibility_create_restriction_series($params = array()) {
+function eligibility_restriction_create_series($params = array()) {
   $params += array(
     'number' => 10,
     'start' => time(),

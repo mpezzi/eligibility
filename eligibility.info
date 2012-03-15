@@ -2,3 +2,5 @@ name = Eligibility
 description = Provides an eligibility api for Drupal.
 package = Eligibility
 core = 7.x
+
+files[] = eligibility.test
