@@ -32,6 +32,18 @@ define('ELIGIBILITY_IS_NOT_ELIGIBLE', 4);
 define('ELIGIBILITY_DEBUG_DATE_FORMAT', 'd M Y H:i:s');
 
 /**
+ * Implements hook_permission().
+ */
+function eligibility_permission() {
+  return array(
+    'debug eligibility' => array(
+      'title' => t('Debug Eligibility'),
+      'description' => t('Allows users to view debug information about eligibility.'),
+    ),
+  );
+}
+
+/**
  * Load a restriction.
  *
  * @param $rid
