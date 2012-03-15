@@ -115,6 +115,42 @@ function eligibility_schema() {
     ),
   );
 
+  $schema['eligibility_events'] = array(
+    'description' => 'Holds eligibility event data.',
+    'fields' => array(
+      'eid' => array(
+        'description' => 'Event ID',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
+      'uid' => array(
+        'description' => 'The User ID',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'tid' => array(
+        'description' => 'The Category ID',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'timestamp' => array(
+        'description' => 'Timestamp',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' =>  array('eid'),
+    'indexes' => array(
+      'uid' => array('uid'),
+      'tid' => array('tid'),
+    ),
+  );
+
   return $schema;
 }
 
