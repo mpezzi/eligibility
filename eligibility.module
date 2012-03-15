@@ -130,13 +130,104 @@ function eligibility_restriction_save(&$restriction) {
 }
 
 /**
+ * Create an interval restriction.
+ *
+ * @param $params
+ *   An array of parameters.
+ */
+function eligibility_create_restriction_interval($params = array()) {
+  $params += array(
+    'start' => time(),
+    'end' => 0,
+    'duration' => 60,
+    'tid' => 0,
+    'status' => 1,
+  );
+
+  $restriction = (object) array(
+    'type' => 'interval',
+    'tid' => $params['tid'],
+    'status' => $params['status'],
+  );
+
+  eligibility_restriction_save($restriction);
+
+  db_insert('eligibility_restrictions_interval')
+    ->fields(array(
+      'rid' => $restriction->rid,
+      'start' => $params['start'],
+      'end' => $params['end'],
+      'length' => $params['duration'],
+    ))
+    ->execute();
+
+  drupal_set_message(t('Successfully created interval restriction.'));
+}
+
+/**
+ * Create a series restriction.
+ *
+ * @param $params
+ *   An array of parameters.
+ */
+function eligibility_create_restriction_series($params = array()) {
+  $params += array(
+    'number' => 10,
+    'start' => time(),
+    'duration' => 60,
+    'tid' => 0,
+    'status' => 1,
+  );
+
+  $restriction = (object) array(
+    'type' => 'series',
+    'tid' => $params['tid'],
+    'status' => $params['status'],
+  );
+
+  eligibility_restriction_save($restriction);
+
+  for ( $i = 1; $i <= $params['number']; $i++ ) {
+    $series = (object) array(
+      'rid' => $restriction->rid,
+      'timestamp' => $params['start'] + $i * $params['duration'],
+      'status' => 1,
+    );
+
+    drupal_write_record('eligibility_restrictions_series', $series);
+  }
+
+  drupal_set_message(t('Successfully created series restriction.'));
+}
+
+/**
+ * Delete a restriction.
+ *
+ * @param $rid
+ *   A Restriction ID.
+ */
+function eligibility_restriction_delete($rid) {
+  db_delete('eligibility_restrictions')
+    ->condition('rid', $rid)
+    ->execute();
+  db_delete('eligibility_restrictions_interval')
+    ->condition('rid', $rid)
+    ->execute();
+  db_delete('eligibility_restrictions_series')
+    ->condition('rid', $rid)
+    ->execute();
+
+  drupal_set_message(t('Successfully deleted restriction.'));
+}
+
+/**
  * Clear all restrictions.
  */
 function eligibility_clear_all() {
   db_truncate('eligibility_restrictions')->execute();
   db_truncate('eligibility_restrictions_interval')->execute();
   db_truncate('eligibility_restrictions_series')->execute();
-  drupal_set_message(t('Cleared all eligibility restrictions'));
+  drupal_set_message(t('Cleared all eligibility restrictions.'));
 }
 
 /**
@@ -163,7 +254,7 @@ function eligibility_get($account = NULL, $tid = NULL, $timestamp = NULL, $last_
   }
 
   if ( is_null($last_timestamp) ) {
-    $last_timestamp = eligibility_last_timestamp($account, $tid);
+    //$last_timestamp = eligibility_last_timestamp($account, $tid);
   }
 
   $status = ELIGIBILITY_IS_ELIGIBLE;
@@ -254,7 +345,7 @@ function eligibility_restriction_interval($restriction, $timestamp, $last_timest
       $period_end = $start + $max_num_intervals * $length;
     }
 
-    if ( $timestamp >= $min && $timestamp < $max ) {
+    if ( $timestamp >= $period_start && $timestamp < $period_end ) {
       if ( !$last_timestamp || $last_timestamp < $period_start ) {
         return (object) array(
           'status' => ELIGIBILITY_IS_ELIGIBLE,
@@ -278,4 +369,84 @@ function eligibility_restriction_interval($restriction, $timestamp, $last_timest
     'period_start' => $period_start,
     'period_end' => $period_end,
   );
+}
+
+/**
+ * Returns an eligibility object for series based time checking.
+ *
+ * @param $restriction
+ *   A Restriction Object.
+ * @param $timestamp
+ *   A timestamp to check against.
+ * @param $last_timestamp
+ *   The last transaction performed.
+ * @return
+ *   An Eligibility Object.
+ */
+function eligibility_restriction_series($restriction, $timestamp, $last_timestamp) {
+  $s = count($restriction->data);
+  $series = $restriction->data;
+  $start = $series[0]->timestamp;
+  $end = $series[$s - 1]->timestamp;
+
+  if ( $timestamp < $start ) {
+    return (object) array(
+      'status' => ELIGIBILITY_IS_EARLY,
+      'timestamp' => $timestamp,
+      'last_timestamp' => $last_timestamp,
+      'start' => $start,
+      'end' => $end,
+    );
+  }
+  elseif ( $timestamp >= $end ) {
+    return (object) array(
+      'status' => ELIGIBILITY_IS_LATE,
+      'timestamp' => $timestamp,
+      'last_timestamp' => $last_timestamp,
+      'start' => $start,
+      'end' => $end,
+    );
+  }
+  else {
+    for ( $i = 0; $i < $s - 1; $i++ ) {
+      if ( $timestamp >= $series[$i]->timestamp && $timestamp < $series[$i + 1]->timestamp ) {
+        $period_start = $series[$i]->timestamp;
+        $period_end = $series[$i + 1]->timestamp;
+
+        if ( !$last_timestamp || $last_timestamp < $period_start ) {
+          return (object) array(
+            'status' => ELIGIBILITY_IS_ELIGIBLE,
+            'timestamp' => $timestamp,
+            'last_timestamp' => $last_timestamp,
+            'start' => $start,
+            'end' => $end,
+            'period_start' => $period_start,
+            'period_end' => $period_end,
+          );
+        }
+      }
+    }
+  }
+
+  return (object) array(
+    'status' => ELIGIBILITY_IS_NOT_ELIGIBLE,
+    'timestamp' => $timestamp,
+    'last_timestamp' => $last_timestamp,
+    'start' => $start,
+    'end' => $end,
+    'period_start' => $period_start,
+    'period_end' => $period_end,
+  );
+}
+
+/**
+ * Debug Eligibility.
+ *
+ * @param $eligibility
+ *   An Eligibility Object.
+ */
+function eligibility_debug($eligibility) {
+  if ( user_access('debug eligibility') && eligibility_config('debug') && module_exists('devel') ) {
+    dpm($eligibility);
+  }
 }
