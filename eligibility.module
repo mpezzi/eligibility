@@ -305,10 +305,26 @@ function eligibility_get($params = array()) {
     $eligibility->next = 0;
   }
 
+  // Provide a human readable version of the state.
+  $eligibility->human_status = eligibility_human_status($eligibility);
+
   // Debug the eligibility object.
   eligibility_debug($eligibility);
 
   return $eligibility;
+}
+
+function eligibility_human_status($eligibility) {
+  switch ( $eligibility->status ) {
+    case ELIGIBILITY_IS_EARLY:
+      return t('Eligibility begins @start', array('@start' => format_date($eligibility->start)));
+    case ELIGIBILITY_IS_LATE:
+      return t('Eligibility ended @end', array('@end' => format_date($eligibility->end)));
+    case ELIGIBILITY_IS_NOT_ELIGIBLE:
+      return t('Next Eligibility in @next', array('@next' => format_interval($eligibility->next)));
+    case ELIGIBILITY_IS_ELIGIBLE:
+      return t('Eligible');
+  }
 }
 
 /**
