@@ -31,8 +31,10 @@ function _eligibility_resource_event($tid = 0) {
  *   Boolean TRUE if the current user has the requested permissions.
  */
 function _eligibility_resource_access($op = 'get', $args = array()) {
-  if ( $op == 'get' || $op == 'event' || user_is_logged_in() ) {
-    return TRUE;
+  if ( user_is_logged_in() ) {
+    if ( $op == 'get' || $op == 'event' ) {
+      return TRUE;
+    }
   }
 
   return FALSE;
