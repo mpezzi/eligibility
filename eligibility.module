@@ -79,6 +79,13 @@ function eligibility_restriction_load($rid) {
           ->fetchObject();
     }
 
+    if ( $restriction->tid && $term = taxonomy_term_load($restriction->tid) ) {
+      $restriction->term = $term;
+    }
+    else {
+      $restriction->term = FALSE;
+    }
+
     $restrictions[$rid] = $restriction;
   }
 
@@ -266,6 +273,7 @@ function eligibility_get($params = array()) {
       $function = 'eligibility_restriction_' . $restriction->type;
       if ( $status == ELIGIBILITY_IS_ELIGIBLE && function_exists($function) ) {
         $eligibility = $function($restriction, $params['timestamp'], $params['last_timestamp']);
+        $eligibility->tid = $restriction->tid;
         $status = $eligibility->status;
       }
     }
@@ -273,12 +281,15 @@ function eligibility_get($params = array()) {
   else {
     $eligibility = (object) array(
       'status' => ELIGIBILITY_IS_ELIGIBLE,
+      'tid' => $params['tid'],
       'timestamp' => $params['timestamp'],
       'last_timestamp' => $params['last_timestamp'],
       'start' => 0,
       'end' => 0,
     );
   }
+
+  $eligibility->term = $restriction->term;
 
   // Calculate the time left until eligibility.
   if ( $eligibility->status == ELIGIBILITY_IS_NOT_ELIGIBLE && isset($eligibility->period_end) ) {
