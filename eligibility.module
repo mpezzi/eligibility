@@ -36,11 +36,63 @@ define('ELIGIBILITY_DEBUG_DATE_FORMAT', 'd M Y H:i:s');
  */
 function eligibility_permission() {
   return array(
+    'view own eligibility' => array(
+      'title' => t('View Own Eligibility'),
+      'description' => t('Allows users to view own eligibility information.'),
+    ),
+    'view all eligibility' => array(
+      'title' => t('View All Eligibility'),
+      'description' => t('Allows users to view all eligibility information.'),
+    ),
     'debug eligibility' => array(
       'title' => t('Debug Eligibility'),
       'description' => t('Allows users to view debug information about eligibility.'),
     ),
   );
+}
+
+/**
+ * Implements hook_menu().
+ */
+function eligibility_menu() {
+  return array(
+    'user/%user/eligibility' => array(
+      'title' => 'Eligibility',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('eligibility_user_eligibility', 1),
+      'access callback' => 'eligibility_access',
+      'access arguments' => array('view eligibility', 1),
+      'file' => 'eligibility.pages.inc',
+      'type' => MENU_LOCAL_TASK,
+      'weight' => 1,
+    ),
+  );
+}
+
+/**
+ * Determine whether the user has a given privilege.
+ *
+ * @param $string
+ *   The permission, such as "view eligibility", being checked for.
+ * @param $account
+ *   (optional) The account to check, if not given use currently logged in user.
+ * @return
+ *   Boolean TRUE if the current user has the requested permission.
+ */
+function eligibility_access($string, $account = NULL) {
+  global $user;
+
+  if ( $string == 'view eligibility' ) {
+    if ( user_access('view own eligibility') && $user->uid == $account->uid ) {
+      return TRUE;
+    }
+
+    if ( user_access('view all eligibility') ) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
 }
 
 /**
