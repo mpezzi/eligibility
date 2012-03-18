@@ -326,6 +326,7 @@ function eligibility_get($params = array()) {
       if ( $status == ELIGIBILITY_IS_ELIGIBLE && function_exists($function) ) {
         $eligibility = $function($restriction, $params['timestamp'], $params['last_timestamp']);
         $eligibility->tid = $restriction->tid;
+        $eligibility->term = $restriction->term;
         $status = $eligibility->status;
       }
     }
@@ -340,8 +341,6 @@ function eligibility_get($params = array()) {
       'end' => 0,
     );
   }
-
-  $eligibility->term = $restriction->term;
 
   // Calculate the time left until eligibility.
   if ( $eligibility->status == ELIGIBILITY_IS_NOT_ELIGIBLE && isset($eligibility->period_end) ) {
