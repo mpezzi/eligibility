@@ -9,14 +9,22 @@
 /**
  * Return an eligibility object for the current user.
  */
-function _eligibility_resource_get($tid = 0) {
+function _eligibility_resource_get($tid = NULL) {
+  if ( is_null($tid) ) {
+    $tid = 0;
+  }
+
   return eligibility_get(array('uid' => $GLOBALS['user']->uid, 'tid' => $tid));
 }
 
 /**
  * Save an eligibility event.
  */
-function _eligibility_resource_event($tid = 0) {
+function _eligibility_resource_event($tid = NULL) {
+  if ( is_null($tid) ) {
+    $tid = 0;
+  }
+
   eligibility_event_save($GLOBALS['user']->uid, $tid);
 }
 
