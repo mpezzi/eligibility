@@ -397,6 +397,17 @@ function eligibility_event_save($uid, $tid, $timestamp = NULL) {
     'timestamp' => is_null($timestamp) ? time() : $timestamp,
   );
 
+  $user = user_load($uid);
+  if ( $tid != 0 ) {
+    $term = taxonomy_term_load($tid);
+    $term_name = $term->name;
+  }
+  else {
+    $term_name = t('General');
+  }
+
+  watchdog('eligibility', 'Successfully marked off %name for %term eligibility.', array('%name' => $user->name, '%term' => $term_name), WATCHDOG_NOTICE, l(t('edit'), 'user/' . $user->uid . '/edit'));
+
   drupal_write_record('eligibility_events', $event);
 
   return $event;
