@@ -290,6 +290,7 @@ function eligibility_restriction_delete($rid) {
  * Clear all restrictions.
  */
 function eligibility_clear_all() {
+  db_truncate('eligibility_events')->execute();
   db_truncate('eligibility_restrictions')->execute();
   db_truncate('eligibility_restrictions_interval')->execute();
   db_truncate('eligibility_restrictions_series')->execute();
