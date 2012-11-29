@@ -319,6 +319,7 @@ function eligibility_get($params = array()) {
     'last_timestamp' => NULL,
   );
 
+  $event = NULL;
   if ( is_null($params['last_timestamp']) ) {
     if ( $event = eligibility_event_load_last($params['uid'], $params['tid']) ) {
       $params['last_timestamp'] = $event->timestamp;
@@ -366,6 +367,9 @@ function eligibility_get($params = array()) {
     $eligibility->next = 0;
   }
 
+  // Provide the last eligibility event.
+  $eligibility->event = $event;
+
   // Provide a human readable version of the state.
   $eligibility->human_status = eligibility_human_status($eligibility);
 
@@ -395,16 +399,19 @@ function eligibility_human_status($eligibility) {
  *   A User ID.
  * @param $tid
  *   A Category ID.
+ * @param $data
+ *   Data to save with event.
  * @param $timestamp
  *   (optional) A timestamp, defaults to time().
  * @return
  *   An Eligibility Event Object.
  */
-function eligibility_event_save($uid, $tid, $timestamp = NULL) {
+function eligibility_event_save($uid, $tid, $data = NULL, $timestamp = NULL) {
   $event = (object) array(
     'uid' => $uid,
     'tid' => $tid,
     'timestamp' => is_null($timestamp) ? time() : $timestamp,
+    'data' => $data,
   );
 
   $user = user_load($uid);
@@ -434,7 +441,7 @@ function eligibility_event_save($uid, $tid, $timestamp = NULL) {
  *   An Eligibility Event Object.
  */
 function eligibility_event_load_last($uid, $tid) {
-  return db_select('eligibility_events', 'e')
+  $event = db_select('eligibility_events', 'e')
     ->fields('e')
     ->condition('uid', $uid)
     ->condition('tid', $tid)
@@ -442,6 +449,10 @@ function eligibility_event_load_last($uid, $tid) {
     ->range(0, 1)
     ->execute()
     ->fetchObject();
+
+  $event->data = unserialize($event->data);
+
+  return $event;
 }
 
 /**
