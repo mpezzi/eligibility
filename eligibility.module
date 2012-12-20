@@ -80,6 +80,15 @@ function eligibility_block_view($delta = '') {
 }
 
 /**
+ * Implements hook_user_delete().
+ */
+function eligibility_user_delete($account) {
+  db_delete('eligibility_events')
+    ->condition('uid', $account->uid)
+    ->execute();
+}
+
+/**
  * Determine whether the user has a given privilege.
  *
  * @param $string
@@ -103,13 +112,4 @@ function eligibility_user_access($string, $account = NULL) {
   }
 
   return FALSE;
-}
-
-/**
- * Implements hook_user_delete().
- */
-function eligibility_user_delete($account) {
-  db_delete('eligibility_events')
-    ->condition('uid', $account->uid)
-    ->execute();
 }
