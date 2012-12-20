@@ -89,6 +89,37 @@ function eligibility_user_delete($account) {
 }
 
 /**
+ * Implements hook_eligibility_restriction_info().
+ */
+function eligibility_eligibility_restriction_info() {
+  $restrictions['interval'] = array(
+    'name' => t('Interval'),
+    'description' => t('Interval based restrictions.'),
+    'callback' => 'eligibility_restriction_interval',
+  );
+  $restrictions['series'] = array(
+    'name' => t('Series'),
+    'description' => t('Series based restrictions.'),
+    'callback' => 'eligibility_restriction_series',
+  );
+  return $restrictions;
+}
+
+/**
+ * Restriction Callback: Test.
+ */
+function eligibility_restriction_interval($name, $identifier, $time) {
+  return $time + 60;
+}
+
+/**
+ * Restriction Callback: Series.
+ */
+function eligibility_restriction_series($name, $identifier, $time) {
+  return $time + 60;
+}
+
+/**
  * Determine whether the user has a given privilege.
  *
  * @param $string

@@ -5,6 +5,7 @@
  * Provides internal functionality for eligibility.
  */
 
+
 /**
  * Eligibility is early.
  */
@@ -25,6 +26,141 @@ define('ELIGIBILITY_IS_ELIGIBLE', 3);
  */
 define('ELIGIBILITY_IS_NOT_ELIGIBLE', 4);
 
+
+/**
+ * Checks whether a user is allowed to proceed with the specified event.
+ *
+ * @param @name
+ *   The name of the restriction.
+ */
+function eligibility_is_allowed($type, $name, $identifier = NULL) {
+  if ( is_null($identifier) ) {
+    $identifier = ip_address();
+  }
+
+  // Look for an event before the expiration time.
+  $event = db_select('eligibility', 'e')
+    ->fields('e', array())
+    ->condition('type', $type)
+    ->condition('name', $name)
+    ->condition('identifier', $identifier)
+    ->condition('expiration', REQUEST_TIME, '>')
+    ->orderBy('expiration', 'DESC')
+    ->range(0, 1)
+    ->execute()
+    ->fetchObject();
+
+  // If an event was found, they're not eligibile.
+  return ! (bool) $event;
+}
+
+/**
+ * Registers an event for the for the current visitor to the eligibility control mechanisim.
+ *
+ * @param $type
+ *   An restriction type.
+ * @param @name
+ *   The name of the restriction.
+ */
+function eligibility_register_event($type, $name, $identifier = NULL, $time = NULL) {
+  if ( is_null($identifier) ) {
+    $identifier = ip_address();
+  }
+
+  if ( is_null($time) ) {
+    $time = REQUEST_TIME;
+  }
+
+  // Default expiration to time.
+  $expiration = $time;
+
+  // Invoke restriction callback to return appropriate expiration time.
+  if ( $restriction = eligibility_get_restrictions($type) ) {
+    $expiration = call_user_func($restriction['callback'], $name, $identifier, $time);
+  }
+
+  db_insert('eligibility')
+    ->fields(array(
+      'type' => $type,
+      'name' => $name,
+      'identifier' => $identifier,
+      'timestamp' => $time,
+      'expiration' => $expiration,
+    ))
+    ->execute();
+}
+
+/**
+ * Makes the eligibility control mechanisim forget an event for the current visitor.
+ *
+* @param $type
+ *   An restriction type.
+ * @param @name
+ *   The name of the restriction.
+ */
+function eligibility_clear_event($type, $name, $identifier = NULL) {
+  if ( !isset($identifier) ) {
+    $identifier = ip_address();
+  }
+  db_delete('eligibility')
+    ->condition('type', $type)
+    ->condition('event', $name)
+    ->condition('identifier', $identifier)
+    ->execute();
+}
+
+/**
+ * Builds a list of available restrictions.
+ *
+ * @param $type
+ *   An restriction type.
+ * @return
+ *   An array of all restrictions, or a single restriction if $type is set.
+ */
+function eligibility_get_restrictions($type = NULL) {
+  $restrictions = &drupal_static(__FUNCTION__);
+
+  if ( !isset($restrictions) ) {
+    // Invoke hook_eligibility_restriction_info().
+    $restrictions = module_invoke_all('eligibility_restriction_info');
+
+    // Invoke hook_eligibility_restriction_info_alter().
+    drupal_alter('eligibility_restriction_info_alter', $restrictions);
+  }
+
+  // Return a single restriction if $name is set.
+  if ( !is_null($type) ) {
+    return isset($restrictions[$type]) ? $restrictions[$type] : FALSE;
+  }
+
+  return $restrictions;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /**
  * Load a restriction.
  *
@@ -33,7 +169,7 @@ define('ELIGIBILITY_IS_NOT_ELIGIBLE', 4);
  * @return
  *   A Restriction Object or FALSE
  */
-function eligibility_restriction_load($rid) {
+function xeligibility_restriction_load($rid) {
   $restrictions = &drupal_static(__FUNCTION__, array());
 
   if ( !isset($restrictions[$rid]) ) {
@@ -82,7 +218,7 @@ function eligibility_restriction_load($rid) {
  * @return
  *   An array of Restriction Objects.
  */
-function eligibility_restriction_load_multiple($param = array()) {
+function xeligibility_restriction_load_multiple($param = array()) {
   $query = db_select('eligibility_restrictions', 'r')
     ->fields('r', array('rid'));
 
@@ -105,7 +241,7 @@ function eligibility_restriction_load_multiple($param = array()) {
  * @param $restriction
  *   A Restriction Object.
  */
-function eligibility_restriction_save(&$restriction) {
+function xeligibility_restriction_save(&$restriction) {
   $restriction->is_new = empty($restriction->rid);
 
   if ( $restriction->is_new ) {
@@ -122,7 +258,7 @@ function eligibility_restriction_save(&$restriction) {
  * @param $params
  *   An array of parameters.
  */
-function eligibility_restriction_create_interval($params = array()) {
+function xeligibility_restriction_create_interval($params = array()) {
   $params += array(
     'start' => time(),
     'end' => 0,
@@ -157,7 +293,7 @@ function eligibility_restriction_create_interval($params = array()) {
  * @param $params
  *   An array of parameters.
  */
-function eligibility_restriction_create_series($params = array()) {
+function xeligibility_restriction_create_series($params = array()) {
   $params += array(
     'number' => 10,
     'start' => time(),
@@ -193,7 +329,7 @@ function eligibility_restriction_create_series($params = array()) {
  * @param $rid
  *   A Restriction ID.
  */
-function eligibility_restriction_delete($rid) {
+function xeligibility_restriction_delete($rid) {
   db_delete('eligibility_restrictions')
     ->condition('rid', $rid)
     ->execute();
@@ -210,7 +346,7 @@ function eligibility_restriction_delete($rid) {
 /**
  * Clear all restrictions.
  */
-function eligibility_clear_all() {
+function xeligibility_clear_all() {
   db_truncate('eligibility_events')->execute();
   db_truncate('eligibility_restrictions')->execute();
   db_truncate('eligibility_restrictions_interval')->execute();
@@ -232,7 +368,7 @@ function eligibility_clear_all() {
  * @return
  *   An Eligibility Object.
  */
-function eligibility_get($params = array()) {
+function xeligibility_get($params = array()) {
   $params += array(
     'uid' => $GLOBALS['user']->uid,
     'tid' => 0,
@@ -300,7 +436,7 @@ function eligibility_get($params = array()) {
   return $eligibility;
 }
 
-function eligibility_human_status($eligibility) {
+function xeligibility_human_status($eligibility) {
   switch ( $eligibility->status ) {
     case ELIGIBILITY_IS_EARLY:
       return t('Eligibility begins @start', array('@start' => format_date($eligibility->start)));
@@ -327,7 +463,7 @@ function eligibility_human_status($eligibility) {
  * @return
  *   An Eligibility Event Object.
  */
-function eligibility_event_save($uid, $tid, $data = NULL, $timestamp = NULL) {
+function xeligibility_event_save($uid, $tid, $data = NULL, $timestamp = NULL) {
   $event = (object) array(
     'uid' => $uid,
     'tid' => $tid,
@@ -361,7 +497,7 @@ function eligibility_event_save($uid, $tid, $data = NULL, $timestamp = NULL) {
  * @return
  *   An Eligibility Event Object.
  */
-function eligibility_event_load_last($uid, $tid) {
+function xeligibility_event_load_last($uid, $tid) {
   $event = db_select('eligibility_events', 'e')
     ->fields('e')
     ->condition('uid', $uid)
@@ -386,7 +522,7 @@ function eligibility_event_load_last($uid, $tid) {
  * @param $last_timestamp
  *   The last timestamp used during eligibility.
  */
-function eligibility_restriction_interval($restriction, $timestamp, $last_timestamp) {
+function xeligibility_restriction_interval($restriction, $timestamp, $last_timestamp) {
   $start = $restriction->data->start;
   $end = $restriction->data->end;
   $length = $restriction->data->length;
@@ -461,7 +597,7 @@ function eligibility_restriction_interval($restriction, $timestamp, $last_timest
  * @return
  *   An Eligibility Object.
  */
-function eligibility_restriction_series($restriction, $timestamp, $last_timestamp) {
+function xeligibility_restriction_series($restriction, $timestamp, $last_timestamp) {
   $s = count($restriction->data);
   $series = $restriction->data;
   $start = $series[0]->timestamp;
@@ -523,7 +659,7 @@ function eligibility_restriction_series($restriction, $timestamp, $last_timestam
  * @param $eligibility
  *   An Eligibility Object.
  */
-function eligibility_debug($eligibility) {
+function xeligibility_debug($eligibility) {
   if ( user_access('debug eligibility') && eligibility_config('debug') && module_exists('devel') ) {
     dpm($eligibility);
   }
@@ -532,7 +668,7 @@ function eligibility_debug($eligibility) {
 /**
  * Returns Eligibility configuration settings.
  */
-function eligibility_config($variable = NULL) {
+function xeligibility_config($variable = NULL) {
   $config = array(
     'debug' => variable_get('eligibility_debug', FALSE),
   );

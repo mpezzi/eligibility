@@ -10,154 +10,54 @@
  * Implements hook_schema().
  */
 function eligibility_schema() {
-  $schema['eligibility_restrictions'] = array(
-    'description' => 'Holds restriction information for eligibility',
+  $schema['eligibility'] = array(
+    'description' => 'Holds eligibility event information.',
     'fields' => array(
-      'rid' => array(
-        'description' => 'Restriction ID',
+      'eid' => array(
+        'description' => 'Unique eligibility event id.',
         'type' => 'serial',
         'not null' => TRUE,
       ),
       'type' => array(
-        'description' => 'The type of restriction',
+        'description' => 'The type of the event.',
         'type' => 'varchar',
         'length' => 32,
         'not null' => TRUE,
         'default' => '',
       ),
-      'tid' => array(
-        'description' => 'The Category ID',
-        'type' => 'int',
-        'unsigned' => TRUE,
+      'name' => array(
+        'description' => 'The name of the event.',
+        'type' => 'varchar',
+        'length' => 64,
         'not null' => TRUE,
-        'default' => 0,
+        'default' => '',
       ),
-      'status' => array(
-        'description' => 'Status',
-        'type' => 'int',
-        'size' => 'tiny',
+      'identifier' => array(
+        'description' => 'Identifier of the visitor, such as an IP address or hostname.',
+        'type' => 'varchar',
+        'length' => 128,
         'not null' => TRUE,
-        'default' => 0,
-      ),
-    ),
-    'primary key' =>  array('rid'),
-    'indexes' => array(
-      'tid' => array('tid'),
-    ),
-  );
-
-  $schema['eligibility_restrictions_interval'] = array(
-    'description' => 'Holds restriction interval information for eligibility',
-    'fields' => array(
-      'rid' => array(
-        'description' => 'Restriction ID',
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-      'start' => array(
-        'description' => 'Start Timestamp',
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-      'end' => array(
-        'description' => 'End Timestamp',
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-      'length' => array(
-        'description' => 'Length',
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-    ),
-    'indexes' => array(
-      'rid' => array('rid'),
-    ),
-  );
-
-  $schema['eligibility_restrictions_series'] = array(
-    'description' => 'Holds restriction series information for eligibility',
-    'fields' => array(
-      'sid' => array(
-        'description' => 'Timestamp ID',
-        'type' => 'serial',
-        'not null' => TRUE,
-      ),
-      'rid' => array(
-        'description' => 'Restriction ID',
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-        'default' => 0,
+        'default' => '',
       ),
       'timestamp' => array(
-        'description' => 'Timestamp',
+        'description' => 'Timestamp of the event.',
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
       ),
-      'status' => array(
-        'description' => 'Status',
+      'expiration' => array(
+        'description' => 'Expiration timestamp. Expired events are purged on cron run.',
         'type' => 'int',
-        'size' => 'tiny',
         'not null' => TRUE,
-        'default' => 1,
+        'default' => 0,
       ),
     ),
-    'primary key' =>  array('sid'),
+    'primary key' => array('eid'),
     'indexes' => array(
-      'rid' => array('rid'),
+      'allow' => array('type', 'name', 'identifier', 'timestamp', 'expiration'),
+      'purge' => array('expiration'),
     ),
   );
-
-  $schema['eligibility_events'] = array(
-    'description' => 'Holds eligibility event data.',
-    'fields' => array(
-      'eid' => array(
-        'description' => 'Event ID',
-        'type' => 'serial',
-        'not null' => TRUE,
-      ),
-      'uid' => array(
-        'description' => 'The User ID',
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-      'tid' => array(
-        'description' => 'The Category ID',
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-      'timestamp' => array(
-        'description' => 'Timestamp',
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-      'data' => array(
-        'type' => 'blob',
-        'not null' => FALSE,
-        'size' => 'big',
-        'serialize' => TRUE,
-        'description' => 'A serialized array of name value pairs that are related to the user. Any form values posted during user edit are stored and are loaded into the $user object during user_load(). Use of this field is discouraged and it will likely disappear in a future version of Drupal.',
-      ),
-    ),
-    'primary key' =>  array('eid'),
-    'indexes' => array(
-      'uid' => array('uid'),
-      'tid' => array('tid'),
-    ),
-  );
-
   return $schema;
 }
 
