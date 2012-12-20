@@ -18,15 +18,15 @@ define('ELIGIBILITY_DEBUG_DATE_FORMAT', 'd M Y H:i:s');
 function eligibility_permission() {
   return array(
     'view own eligibility' => array(
-      'title' => t('View Own Eligibility'),
+      'title' => t('View own eligibility'),
       'description' => t('Allows users to view own eligibility information.'),
     ),
     'view all eligibility' => array(
-      'title' => t('View All Eligibility'),
+      'title' => t('View all eligibility'),
       'description' => t('Allows users to view all eligibility information.'),
     ),
     'debug eligibility' => array(
-      'title' => t('Debug Eligibility'),
+      'title' => t('Debug eligibility'),
       'description' => t('Allows users to view debug information about eligibility.'),
     ),
   );
