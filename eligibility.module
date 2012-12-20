@@ -106,9 +106,40 @@ function eligibility_eligibility_restriction_info() {
 }
 
 /**
- * Restriction Callback: Test.
+ * Restriction Callback: Interval.
  */
 function eligibility_restriction_interval($name, $identifier, $time) {
+  $start = variable_get('eligibility_restriction_interval_' . $name . '_start', 0);
+  $end = variable_get('eligibility_restriction_interval_' . $name . '_end', 0);
+  $length = variable_get('eligibility_restriction_interval_' . $name . '_length', 0);
+
+  if ( $time < $start ) {
+    $status = ELIGIBILIY_IS_EARLY;
+  }
+  else if ( $timestamp >= $end && $end != 0 ) {
+    $status = ELIGIBILIY_IS_LATE;
+  }
+  else {
+    $num_intervals = ( $time - $start ) / $length;
+
+    // Intervals divides into timestamp evenly.
+    if ( ( $time - $start ) % $length == 0 ) {
+      $period_start = $start + $num_intervals * $length;
+      $period_end = $start + ( $num_intervals + 1 ) * $length;
+    }
+    // Intervals isn't a whole number calculate max and min values.
+    else {
+      $min_num_intervals = floor($num_intervals);
+      $max_num_intervals = ceil($num_intervals);
+      $period_start = $start + $min_num_intervals * $length;
+      $period_end = $start + $max_num_intervals * $length;
+    }
+
+    if ( $time >= $period_start && $time < $period_end ) {
+      
+    }
+  }
+
   return $time + 60;
 }
 
