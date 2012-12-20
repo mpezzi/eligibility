@@ -75,7 +75,7 @@ function eligibility_block_info() {
  */
 function eligibility_block_view($delta = '') {
   $block = array();
-  if ( $delta == 'debug' ) {
+  if ( $delta == 'debug' && user_access('debug eligibility') ) {
     $block['subject'] = t('Eligibility Debugger');
     $block['content'] = array(
       'eligibility' => array(
