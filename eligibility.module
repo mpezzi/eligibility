@@ -41,7 +41,7 @@ function eligibility_menu() {
       'title' => 'Eligibility',
       'page callback' => 'drupal_get_form',
       'page arguments' => array('eligibility_user_eligibility', 1),
-      'access callback' => 'eligibility_access',
+      'access callback' => 'eligibility_user_access',
       'access arguments' => array('view eligibility', 1),
       'file' => 'eligibility.pages.inc',
       'type' => MENU_LOCAL_TASK,
@@ -98,7 +98,7 @@ function eligibility_block_view($delta = '') {
  * @return
  *   Boolean TRUE if the current user has the requested permission.
  */
-function eligibility_access($string, $account = NULL) {
+function eligibility_user_access($string, $account = NULL) {
   global $user;
 
   if ( $string == 'view eligibility' ) {
