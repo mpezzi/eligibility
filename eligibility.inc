@@ -71,13 +71,19 @@ function eligibility_register_event($type, $name, $identifier = NULL, $time = NU
     $time = REQUEST_TIME;
   }
 
-  // Default expiration to time.
-  $expiration = $time;
-
   // Invoke restriction callback to return appropriate expiration time.
   if ( $restriction = eligibility_get_restrictions($type) ) {
-    $expiration = call_user_func($restriction['callback'], $name, $identifier, $time);
+    $restriction_info = call_user_func($restriction['callback'], $name, $identifier, $time);
   }
+
+  // @TODO: Debug.
+  // dpm(array(
+  //   'time' => format_date($restriction_info->timestamp),
+  //   'start' => format_date($restriction_info->start),
+  //   'end' => format_date($restriction_info->end),
+  //   'period_start' =>format_date($restriction_info->period_start),
+  //   'period_end' =>format_date($restriction_info->period_end),
+  // ));
 
   db_insert('eligibility')
     ->fields(array(
@@ -85,7 +91,7 @@ function eligibility_register_event($type, $name, $identifier = NULL, $time = NU
       'name' => $name,
       'identifier' => $identifier,
       'timestamp' => $time,
-      'expiration' => $expiration,
+      'expiration' => $restriction_info->expiration,
     ))
     ->execute();
 }

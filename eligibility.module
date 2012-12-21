@@ -120,40 +120,53 @@ function eligibility_restriction_interval($name, $identifier, $time) {
   $end = variable_get('eligibility_restriction_interval_' . $name . '_end', 0);
   $length = variable_get('eligibility_restriction_interval_' . $name . '_length', 0);
 
+  $period_start = 0;
+  $period_end = 0;
+
+  $status = ELIGIBILITY_IS_NOT_ELIGIBLE;
+
+  // Time is before eligibility start date.
   if ( $time < $start ) {
     $status = ELIGIBILIY_IS_EARLY;
   }
-  else if ( $timestamp >= $end && $end != 0 ) {
+  // Time is pass eligibility end date.
+  else if ( $time >= $end && $end != 0 ) {
     $status = ELIGIBILIY_IS_LATE;
   }
+  // Determine the start and end time for the current restriction period.
   else {
-    $num_intervals = ( $time - $start ) / $length;
-
-    // Intervals divides into timestamp evenly.
+    $periods = ( $time - $start ) / $length;
     if ( ( $time - $start ) % $length == 0 ) {
-      $period_start = $start + $num_intervals * $length;
-      $period_end = $start + ( $num_intervals + 1 ) * $length;
+      $period_start = $start + $periods * $length;
+      $period_end = $start + ( $periods + 1 ) * $length;
     }
-    // Intervals isn't a whole number calculate max and min values.
     else {
-      $min_num_intervals = floor($num_intervals);
-      $max_num_intervals = ceil($num_intervals);
-      $period_start = $start + $min_num_intervals * $length;
-      $period_end = $start + $max_num_intervals * $length;
+      $period_start = $start + floor($periods) * $length;
+      $period_end = $start + ceil($periods) * $length;
     }
-
-    if ( $time >= $period_start && $time < $period_end ) {
-      
+    if ( eligibility_is_allowed('interval', $name, $identifier) ) {
+      $status = ELIGIBILITY_IS_ELIGIBLE;
     }
   }
 
-  return $time + 60;
+  $restriction = (object) array(
+    'status' => $status,
+    'timestamp' => $time,
+    'start' => $start,
+    'end' => $end,
+    'period_start' => $period_start,
+    'period_end' => $period_end,
+    'expiration' => $period_end,
+  );
+
+  return $restriction;
 }
 
 /**
  * Restriction Callback: Series.
  */
 function eligibility_restriction_series($name, $identifier, $time) {
+  // @TODO: Figure out best way to implement using new logic.
   return $time + 60;
 }
 
