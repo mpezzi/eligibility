@@ -13,6 +13,13 @@ require_once dirname(__FILE__) . '/eligibility.inc';
 define('ELIGIBILITY_DEBUG_DATE_FORMAT', 'd M Y H:i:s');
 
 /**
+ * Implements hook_cron().
+ */
+function eligibility_cron() {
+  eligibility_purge_events();
+}
+
+/**
  * Implements hook_permission().
  */
 function eligibility_permission() {

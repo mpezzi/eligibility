@@ -110,6 +110,15 @@ function eligibility_clear_event($type, $name, $identifier = NULL) {
 }
 
 /**
+ * Purge expired eligibility events.
+ */
+function eligibility_purge_events() {
+  db_delete('eligibility')
+    ->condition('expiration', REQUEST_TIME, '<')
+    ->execute();
+}
+
+/**
  * Builds a list of available restrictions.
  *
  * @param $type
