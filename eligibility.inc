@@ -71,9 +71,9 @@ function eligibility_register_event($type, $name, $identifier = NULL, $time = NU
     $time = REQUEST_TIME;
   }
 
-  // Invoke restriction callback to return appropriate expiration time.
+  // Invoke restriction callback to return eligibility information.
   if ( $restriction = eligibility_get_restrictions($type) ) {
-    $restriction_info = call_user_func($restriction['callback'], $name, $identifier, $time);
+    $eligibility = call_user_func($restriction['callback'], $name, $identifier, $time);
   }
 
   // @TODO: Debug.
@@ -91,7 +91,7 @@ function eligibility_register_event($type, $name, $identifier = NULL, $time = NU
       'name' => $name,
       'identifier' => $identifier,
       'timestamp' => $time,
-      'expiration' => $restriction_info->expiration,
+      'expiration' => $eligibility->expiration,
     ))
     ->execute();
 }
