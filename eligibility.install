@@ -171,7 +171,7 @@ function eligibility_uninstall() {
 }
 
 /**
- * Implements hook_update_n().
+ * Added data store to eligibility events.
  */
 function eligibility_update_7130() {
   $data_field = array(
