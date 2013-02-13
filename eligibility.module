@@ -124,7 +124,6 @@ function eligibility_access($string, $account = NULL) {
     if ( user_access('view own eligibility') && $user->uid == $account->uid ) {
       return TRUE;
     }
-
     if ( user_access('view all eligibility') ) {
       return TRUE;
     }
@@ -159,14 +158,15 @@ function eligibility_restriction_load($rid) {
           ->orderBy('timestamp')
           ->execute()
           ->fetchAll();
-
         break;
+
       case 'interval':
         $restriction->data = db_select('eligibility_restrictions_interval', 'ri')
           ->fields('ri')
           ->condition('ri.rid', $rid)
           ->execute()
           ->fetchObject();
+        break;
     }
 
     if ( $restriction->tid && $term = taxonomy_term_load($restriction->tid) ) {
