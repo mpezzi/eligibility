@@ -27,9 +27,11 @@ define('ELIGIBILITY_IS_ELIGIBLE', 3);
 define('ELIGIBILITY_IS_NOT_ELIGIBLE', 4);
 
 /**
- * Debug date format.
+ * Implements hook_cron().
  */
-define('ELIGIBILITY_DEBUG_DATE_FORMAT', 'd M Y H:i:s');
+function eligibility_cron() {
+  eligibility_purge_events();
+}
 
 /**
  * Implements hook_permission().
@@ -623,6 +625,16 @@ function eligibility_restriction_series($restriction, $timestamp, $last_timestam
     'period_start' => $period_start,
     'period_end' => $period_end,
   );
+}
+
+/**
+ * Purge eligibility events.
+ */
+function eligibility_purge_events() {
+  $life = variable_get('eligibility_event_max_life', 172800);
+  db_delete('eligibility_events')
+    ->condition('timestamp', time() - $life, '<')
+    ->execute();
 }
 
 /**
