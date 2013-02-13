@@ -169,3 +169,17 @@ function eligibility_uninstall() {
     ->condition('name', 'eligibility_%', 'LIKE')
     ->execute();
 }
+
+/**
+ * Implements hook_update_n().
+ */
+function eligibility_update_7130() {
+  $data_field = array(
+    'type' => 'blob',
+    'not null' => FALSE,
+    'size' => 'big',
+    'serialize' => TRUE,
+    'description' => 'A serialized array of name value pairs that are related to the user. Any form values posted during user edit are stored and are loaded into the $user object during user_load(). Use of this field is discouraged and it will likely disappear in a future version of Drupal.',
+  );
+  db_add_field('eligibility_events', 'data', $data_field);
+}
